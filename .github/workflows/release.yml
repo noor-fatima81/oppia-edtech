@@ -1,0 +1,45 @@
+name: Release CI
+on:
+  push:
+    branches:
+    - master
+    - alpha
+
+permissions:
+  id-token: write  # Required for OIDC
+  contents: write  # For Semantic Release tagging
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      with:
+        fetch-depth: 0
+    - name: Setup Node.js
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      with:
+        node-version-file: '.nvmrc'
+    - name: Install dependencies
+      run: npm ci
+    - name: Validate package-lock.json changes
+      run: make validate-no-uncommitted-package-lock-changes
+    - name: Lint
+      run: npm run lint
+    - name: Test
+      run: npm run test
+    - name: i18n_extract
+      run: npm run i18n_extract
+    - name: Coverage
+      uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4.6.0
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        fail_ci_if_error: false
+    - name: Build
+      run: npm run build
+    - name: Release
+      run: npx semantic-release@25
+      env:
+        GITHUB_TOKEN: ${{ secrets.OPENEDX_SEMANTIC_RELEASE_GITHUB_TOKEN }}
